@@ -187,6 +187,11 @@ def leggi_a22():
         if k >= 0 and os.environ.get("A22_DEBUG"):
             print("  A22 contesto:", repr(html[max(0, k - 1500):k + 700]))
             print("  A22 conteggio:", len(re.findall(r"WebCamImg/", html)))
+            print("  A22 script:", re.findall(r"<script[^>]*src=[\"']?([^\"' >]+)", html))
+            for mm in list(re.finditer(r"(?i)webcam", html))[:400]:
+                pezzo = html[mm.start() - 80:mm.start() + 160]
+                if re.search(r"(?i)lat|lng|lon|coord|json|fetch|ajax|api", pezzo):
+                    print("  A22 indizio:", repr(pezzo))
             break
     if dati is None:
         raise ValueError("elenco webcam non trovato nelle pagine")
