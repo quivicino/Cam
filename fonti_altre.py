@@ -196,13 +196,23 @@ ASTM = [
     {"url": "https://www.autoviapadana.it/webcam/", "gestore": "Autovia Padana", "tratte": [
         {"s": "A21", "sn": "A21 PIACENZA-BRESCIA", "punti": [(9.8240, 45.0480), (10.1690, 45.4800)], "da": None, "a": None,
          "zona": "", "alias": {"Ponte sul fiume Po": "Castelvetro Piacentino", "Bivio per Fiorenzuola": "San Pietro in Cerro"}}]},
+    {"url": "https://www.sav-a5.it/webcam/", "gestore": "SAV", "tratte": [
+        {"s": "A5", "sn": "A5 QUINCINETTO-AOSTA", "punti": [(7.8090, 45.5610), (7.2900, 45.7300)], "da": None, "a": None,
+         "zona": "Valle d'Aosta", "alias": {"FUNIVIA PILA": "Charvensod", "P.S.MARTIN": "Pont-Saint-Martin"}}]},
+    # A33: il km parte da Asti (allacciamento A21) e arriva a Cuneo
+    {"url": "https://www.asticuneo.it/webcam/", "gestore": "Asti-Cuneo", "tratte": [
+        {"s": "A33", "sn": "A33 ASTI-CUNEO", "punti": [(8.2560, 44.8960), (7.5480, 44.4080)], "da": 0, "a": 90,
+         "zona": "Piemonte"}]},
 ]
 ASTM_BLOCCO = re.compile(r"<!-- WEBCAM -->(.*?)<!-- /WEBCAM -->", re.S)
 
 
 def km_da_testo(t):
     """'Rondissone KM 24+500' → 24.5 ; 'MASSA-CARRARA km. 114' → 114 ; '42+894 sud' → 42.894"""
-    m = re.search(r"(?:km\.?\s*)?(\d{1,3})\s*\+\s*(\d{1,3})", t, re.I) or re.search(r"km\.?\s*(\d{1,3})(?:[.,](\d+))?", t, re.I)
+    m = re.search(r"(?:km\.?\s*)?(\d{1,3})\s*\+\s*(\d{1,3})", t, re.I) or re.search(r"km\.?\s*(\d{1,3})\s(\d{3})\b", t, re.I)
+    if m and "+" not in m.group(0):   # 'KM 14 895' = 14,895
+        return int(m.group(1)) + int(m.group(2)) / 1000
+    m = m or re.search(r"km\.?\s*(\d{1,3})(?:[.,](\d+))?", t, re.I)
     if not m:
         return None
     intero, dec = m.group(1), m.group(2) or "0"
