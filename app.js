@@ -21,7 +21,7 @@
     aggiornato: null,
     percorso: null,       // { linea: [[lon,lat]…], metri, secondi, da, a, daNome, aNome }
     mostrate: [],         // telecamere vicine o lungo il percorso, in ordine
-    fonti: new Set(["aspi", "a22", "iv", "abp", "astm"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
+    fonti: new Set(["aspi", "a22", "iv", "abp", "astm", "msv"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
     seguiGps: true,
     indiceProssima: -1
   };
@@ -109,11 +109,15 @@
   // Riquadro dell'immagine: <img> che, se il gestore non dà il fotogramma, passa al video
   function htmlScatto(t, grande) {
     // Nel riquadro grande, se c'è, si mostra l'ultima ripresa video (la miniatura JPG di Autostrade è piccola)
-    const media = grande && t.vid
+    const media = !t.img && t.emb
+      ? (grande
+        ? `<iframe class="diretta" src="${esc(t.emb)}" title="Diretta della telecamera ${esc(t.n)}" allow="autoplay; fullscreen" loading="lazy" referrerpolicy="no-referrer"></iframe>`
+        : `<span class="scatto-diretta"><span>▶</span>Diretta video</span>`)
+      : grande && t.vid
       ? `<video data-live="1" autoplay muted loop playsinline preload="auto" poster="${esc(conOra(t.img))}" src="${esc(conOra(t.vid))}"></video>`
       : `<img alt="Immagine della telecamera ${esc(t.n)}" ${grande ? "" : 'loading="lazy"'} src="${esc(conOra(t.img))}">`;
-    return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">${media}
-      <span class="scatto-ora">${esc(ora())}</span></div>`;
+    const orario = t.emb && !t.img ? "" : `<span class="scatto-ora">${esc(ora())}</span>`;
+    return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">${media}${orario}</div>`;
   }
   function collegaScatti(radice) {
     radice.querySelectorAll(".scatto video[data-live]").forEach((v) => {
@@ -149,7 +153,7 @@
     giroImmagini = Date.now();
     document.querySelectorAll(".scatto").forEach((box) => {
       const t = perId.get(box.dataset.id);
-      if (!t) return;
+      if (!t || box.querySelector("iframe, .scatto-diretta")) return;   // le dirette non si ricaricano
       const v = box.querySelector("video");
       if (v && v.dataset.live) {
         v.poster = conOra(t.img);
@@ -173,7 +177,7 @@
     messaggio("Carico l'elenco delle telecamere…");
     try {
       const d = await fetchJson("dati/telecamere.json", { cache: "no-cache" }, 20000);
-      stato.tutte = (d.t || []).filter((t) => isFinite(t.la) && isFinite(t.lo) && t.img);
+      stato.tutte = (d.t || []).filter((t) => isFinite(t.la) && isFinite(t.lo) && (t.img || t.emb));
       stato.aggiornato = d.aggiornato || null;
       perId = new Map(stato.tutte.map((t) => [t.id, t]));
       disegnaTutte();
@@ -257,7 +261,7 @@
       <p class="pop-meta">${descrizione(t)}</p>
       ${quando ? `<p class="pop-meta">${esc(quando)}</p>` : ""}
       ${htmlScatto(t, true)}
-      ${t.vid ? '<p class="pop-nota">Ultima ripresa, rifatta ogni pochi minuti</p>' : ""}
+      ${t.emb && !t.img ? '<p class="pop-nota">Diretta video dal sito del gestore</p>' : t.vid ? '<p class="pop-nota">Ultima ripresa, rifatta ogni pochi minuti</p>' : ""}
       <p class="pop-rotto">Questa telecamera adesso non manda immagini (spenta o in manutenzione).</p>
       <div class="pop-azioni">
         <a class="pop-vai" href="${linkNavigazione(t.la, t.lo)}" target="_blank" rel="noopener">Portami qui</a>
@@ -266,7 +270,7 @@
     collegaScatti(div);
     return div;
   }
-  const GESTORI = { aspi: "Autostrade per l'Italia", a22: "Autostrada del Brennero", iv: "Infoviaggiando", abp: "A4 Brescia-Padova", astm: "Gruppo ASTM" };
+  const GESTORI = { aspi: "Autostrade per l'Italia", a22: "Autostrada del Brennero", iv: "Infoviaggiando", abp: "A4 Brescia-Padova", astm: "Gruppo ASTM", msv: "Milano Serravalle" };
   function nomeGestore(t) {
     if (t.f === "iv" && t.sn) return t.sn.replace(/^\S+\s*/, "") || GESTORI.iv;
     return t.g || GESTORI[t.f] || "";

@@ -284,3 +284,50 @@ def posiziona(tratta, km, nome):
         print(f"  ASTM: {nome} trovato a {dist / 1000:.0f} km dall'autostrada, scartato")
         return None
     return punto
+
+
+# ---------- Milano Serravalle - Milano Tangenziali ----------
+# La mappa del sito contiene l'elenco: webcam[0] = {"url": "/admin/news/video/brugherio", "svincolo": "Brugherio - A51 ",
+# "lat": 45.5380, "lng": 9.2857}. Ogni telecamera è una diretta video (HLS) in una pagina che si può incorporare.
+MSV_MAPPA = "https://www.serravalle.it/index.php/map"
+MSV_SITO = "https://www.serravalle.it"
+MSV_NOMI = {"A7": "A7 MILANO-SERRAVALLE", "A50": "A50 TANGENZIALE OVEST DI MILANO",
+            "A51": "A51 TANGENZIALE EST DI MILANO", "A52": "A52 TANGENZIALE NORD DI MILANO"}
+# Coordinate sbagliate nell'elenco del gestore (Ghisolfa è dato vicino a Pero, ma è il nodo di viale Certosa/A4)
+MSV_CORREZIONI = {"ghisolfa": (45.4993, 9.1497, "A4", "A4 MILANO GHISOLFA")}
+
+
+def leggi_serravalle():
+    pagina = scarica(MSV_MAPPA).decode("utf-8", "replace")
+    out = []
+    for blocco in re.findall(r"webcam\[\d+\]\s*=\s*(\{[^}]*\})", pagina):
+        try:
+            c = json.loads(blocco)
+        except ValueError:
+            continue
+        url = c.get("url") or ""
+        m = re.search(r"/video/([\w-]+)$", url)
+        la, lo = numero(c.get("lat")), numero(c.get("lng"))
+        if not m or la is None or lo is None:
+            continue
+        slug = m.group(1)
+        nome = pulisci(c.get("svincolo"))
+        r = re.search(r"\b(A\d+)\s*$", nome)
+        strada = r.group(1) if r else ""
+        sn = MSV_NOMI.get(strada, strada)
+        if slug in MSV_CORREZIONI:
+            la, lo, strada, sn = MSV_CORREZIONI[slug]
+        out.append({
+            "id": "msv-" + slug,
+            "la": round(la, 5), "lo": round(lo, 5),
+            "s": strada or "MI", "sn": sn or "MILANO SERRAVALLE",
+            "n": pulisci(re.sub(r"\s*-\s*A\d+\s*$", "", nome)) or slug,
+            "km": None, "dir": "",
+            "img": None, "vid": None,
+            "emb": (url if url.startswith("http") else MSV_SITO + url),
+            "f": "msv"
+        })
+    print(f"Milano Serravalle: {len(out)} telecamere")
+    if not out:
+        raise ValueError("nessuna telecamera")
+    return out

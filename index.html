@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div class="app">
@@ -149,6 +149,7 @@
           <button class="chip filtro" type="button" data-filtro="iv" aria-pressed="true">Nord-Est (Infoviaggiando)</button>
           <button class="chip filtro" type="button" data-filtro="abp" aria-pressed="true">A4 Brescia-Padova</button>
           <button class="chip filtro" type="button" data-filtro="astm" aria-pressed="true">Gruppo ASTM</button>
+          <button class="chip filtro" type="button" data-filtro="msv" aria-pressed="true">Milano Serravalle</button>
         </div>
 
         <ol class="lista" id="lista"></ol>
@@ -163,7 +164,8 @@
           <a href="https://www.autostradadeifiori.it/webcam/" target="_blank" rel="noopener">Autostrada dei Fiori</a>,
           <a href="https://www.concessionideltirreno.it/webcam-a10/" target="_blank" rel="noopener">Concessioni del Tirreno</a>,
           <a href="https://www.salt.it/webcam/" target="_blank" rel="noopener">SALT</a>,
-          <a href="https://www.autoviapadana.it/webcam/" target="_blank" rel="noopener">Autovia Padana</a>).
+          <a href="https://www.autoviapadana.it/webcam/" target="_blank" rel="noopener">Autovia Padana</a>),
+          <a href="https://www.serravalle.it/index.php/map" target="_blank" rel="noopener">Milano Serravalle</a>.
           Mappa, ricerca indirizzi e percorsi: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> e chi contribuisce (licenza ODbL), calcolo con <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>.
         </footer>
         <p class="versione" id="elenco-versione"></p>
@@ -253,10 +255,12 @@
           <ul class="g-punti">
             <li>Sono le webcam pubbliche dei gestori: <b>Autostrade per l'Italia</b> (circa mille telecamere su quasi tutta la rete),
               <b>Autostrada del Brennero</b> (A22), <b>Autostrade Alto Adriatico</b> e <b>CAV</b> (A4 Venezia-Trieste, A23, A28, A34, A57, Passante di Mestre),
-              <b>A4 Brescia-Padova</b> e le società del gruppo <b>ASTM</b> (A4 Torino-Milano, A6, A10 Savona-Ventimiglia, A12 Sestri-Livorno, A15, A21).</li>
+              <b>A4 Brescia-Padova</b> e le società del gruppo <b>ASTM</b> (A4 Torino-Milano, A6, A10 Savona-Ventimiglia, A12 Sestri-Livorno, A15, A21),
+              <b>Milano Serravalle</b> (A7 e Tangenziali di Milano A50, A51, A52).</li>
             <li>Per le telecamere dell'A22 e del gruppo ASTM i gestori non danno le coordinate: l'app le mette sull'autostrada in base al chilometro o al nome del luogo, quindi la posizione sulla mappa è approssimata.</li>
             <li>L'app le mostra direttamente dai loro siti: vedi sempre l'ultima immagine che hanno pubblicato.
-              Le telecamere di Autostrade per l'Italia registrano un breve video ogni pochi minuti.</li>
+              Le telecamere di Autostrade per l'Italia registrano un breve video ogni pochi minuti;
+              quelle di Milano Serravalle sono in diretta video continua.</li>
             <li>L'elenco delle telecamere si aggiorna da solo più volte al giorno. Se una telecamera è spenta o in manutenzione
               il riquadro lo dice.</li>
             <li>Alcune tratte (per esempio Milano Serravalle e Tangenziali di Milano, ANAS, autostrade siciliane) per ora non hanno telecamere nell'app.</li>
@@ -295,10 +299,10 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="config.js?v=3"></script>
-  <script src="core.js?v=3"></script>
-  <script src="app.js?v=3"></script>
-  <script src="installa.js?v=3"></script>
-  <script src="bussola.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="core.js?v=4"></script>
+  <script src="app.js?v=4"></script>
+  <script src="installa.js?v=4"></script>
+  <script src="bussola.js?v=4"></script>
 </body>
 </html>
