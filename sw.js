@@ -1,6 +1,6 @@
 // Qui-Cam – service worker: rende l'app installabile e apribile offline.
 // Cambia il nome della cache a ogni aggiornamento: così l'iPhone capisce che c'è una versione nuova.
-const CACHE = "cam-4";
+const CACHE = "cam-5";
 const FILE = ["./", "index.html", "style.css", "config.js", "core.js", "app.js", "installa.js", "bussola.js", "favicon-64.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

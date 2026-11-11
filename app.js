@@ -182,6 +182,9 @@
       perId = new Map(stato.tutte.map((t) => [t.id, t]));
       disegnaTutte();
       renderStrade(d.strade || []);
+      fetchJson("dati/mancanti.json", { cache: "no-cache" }, 15000).then(renderMancanti).catch(() => {
+        $("strade-mancanti").innerHTML = '<p class="vuoto">Il controllo non è ancora disponibile.</p>';
+      });
       return true;
     } catch (e) {
       console.warn("Elenco telecamere non disponibile", e);
@@ -225,6 +228,18 @@
       tr.addEventListener("click", vai);
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter") vai(); });
     });
+  }
+  // Strade senza telecamere: per ogni gestore se abbiamo un link e se risponde
+  const STATI = { "nessun link": "Nessun link a telecamere", "non risponde": "Link noto, ma non risponde",
+    "link trovato": "Trovato un link da esaminare", "risponde": "Il link risponde: in arrivo" };
+  function renderMancanti(d) {
+    const g = (d && d.gestori) || [];
+    if (!g.length) return;
+    const quando = d.controllato ? new Date(d.controllato).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) : "";
+    $("strade-mancanti").innerHTML = `<table class="tab-strade"><thead><tr><th>Strade</th><th>Gestore</th><th>Stato</th></tr></thead><tbody>${
+      g.map((x) => `<tr><td>${x.strade.map((s) => `<span class="strada">${esc(s)}</span>`).join(" ")}</td><td>${esc(x.gestore)}</td>` +
+        `<td><b>${esc(STATI[x.stato] || x.stato)}</b><br><small>${esc(x.dettaglio || "")}</small></td></tr>`).join("")
+    }</tbody></table>${quando ? `<p class="g-versione">Ultimo controllo: ${esc(quando)}</p>` : ""}`;
   }
   // "A1 MILANO-BOLOGNA" → "Milano-Bologna"
   function nomeTratta(s) {

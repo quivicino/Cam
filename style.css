@@ -571,6 +571,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tab-strade td { padding: 7px 6px; border-top: 1px solid var(--bordo); vertical-align: top; }
 .tab-strade td:nth-child(3), .tab-strade td:nth-child(4), .tab-strade th:nth-child(3), .tab-strade th:nth-child(4) { text-align: right; white-space: nowrap; }
 .tab-strade tr[data-i] { cursor: pointer; }
+#strade-mancanti .tab-strade td:nth-child(3), #strade-mancanti .tab-strade th:nth-child(3) { text-align: left; white-space: normal; }
+#strade-mancanti small { color: var(--testo-2); font-size: 13px; }
+#strade-mancanti .strada { margin: 0 2px 2px 0; display: inline-block; }
 .tab-strade tr[data-i]:hover td { background: var(--bg); }
 @media (prefers-reduced-motion: reduce) { .vai.gira-testo { animation: none; } }
 .pop .pop-nota { font-size: 13px; margin: 0; }

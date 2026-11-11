@@ -32,6 +32,11 @@ jobs:
           SITO: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: python3 aggiorna_telecamere.py
 
+      - name: Controlla le strade ancora senza telecamere
+        timeout-minutes: 5
+        continue-on-error: true
+        run: python3 strumenti/strade_mancanti.py
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
