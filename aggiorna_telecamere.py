@@ -183,6 +183,11 @@ def leggi_a22():
         jpg = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:-]*\.jpe?g", html, re.I)))[:5]
         js = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:?=&-]*\.(?:json|js|ashx|aspx)[\w?=&]*", html, re.I)))[:8]
         print(f"  A22: nessun elenco in {url} ({len(html)} caratteri); jpg: {jpg}; script/dati: {js}")
+        k = html.find("WebCamImg/")
+        if k >= 0 and os.environ.get("A22_DEBUG"):
+            print("  A22 contesto:", repr(html[max(0, k - 1500):k + 700]))
+            print("  A22 conteggio:", len(re.findall(r"WebCamImg/", html)))
+            break
     if dati is None:
         raise ValueError("elenco webcam non trovato nelle pagine")
     gruppi = dati.values() if isinstance(dati, dict) else [dati]
