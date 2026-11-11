@@ -182,7 +182,7 @@ ASTM = [
          "zona": "Piemonte"}]},
     {"url": "https://www.concessionideltirreno.it/webcam-a10/", "gestore": "Concessioni del Tirreno", "tratte": [
         {"s": "A10", "sn": "A10 SAVONA-VENTIMIGLIA", "punti": [(8.4390, 44.3070), (7.5370, 43.7880)], "da": 45.5, "a": 158,
-         "zona": "Liguria"}]},
+         "zona": "Liguria", "alias": {"BARRIERA FRANCIA": "Grimaldi, Ventimiglia", "RACCORDO A10-A6": "Zinola, Savona"}}]},
     {"url": "https://www.concessionideltirreno.it/webcam-a12/", "gestore": "Concessioni del Tirreno", "tratte": [
         {"s": "A12", "sn": "A12 SESTRI LEVANTE-LIVORNO", "punti": [(9.4170, 44.2830), (10.4170, 43.6060)], "da": 48.6, "a": 166.5,
          "zona": "", "chiave": "A12"},
@@ -195,7 +195,7 @@ ASTM = [
          "zona": "Emilia-Romagna"}]},
     {"url": "https://www.autoviapadana.it/webcam/", "gestore": "Autovia Padana", "tratte": [
         {"s": "A21", "sn": "A21 PIACENZA-BRESCIA", "punti": [(9.8240, 45.0480), (10.1690, 45.4800)], "da": None, "a": None,
-         "zona": ""}]},
+         "zona": "", "alias": {"Ponte sul fiume Po": "Castelvetro Piacentino", "Bivio per Fiorenzuola": "San Pietro in Cerro"}}]},
 ]
 ASTM_BLOCCO = re.compile(r"<!-- WEBCAM -->(.*?)<!-- /WEBCAM -->", re.S)
 
@@ -265,6 +265,11 @@ def posiziona(tratta, km, nome):
     if km is not None and tratta["da"] is not None and tratta["da"] - 2 <= km <= tratta["a"] + 2:
         return punto_lungo(pts, prog, (km - tratta["da"]) / (tratta["a"] - tratta["da"]))
     # niente km: si cerca il nome del luogo e lo si aggancia all'autostrada
+    for k, v in (tratta.get("alias") or {}).items():
+        if nome.lower().startswith(k.lower()):
+            p = cerca_luogo(v)
+            if p:
+                return aggancia(pts, p[0], p[1])[0]
     luogo = re.sub(r"(?i)\b(km\.?\s*[\d+ ,.]*|svincolo|uscita|bivio( per)?|interc\.?|ads|area di (servizio|sosta)|"
                    r"raccordo|galleria|barriera|ponte sul fiume|nord|sud|est|ovest|cn|at)\b", " ", nome)
     luogo = re.sub(r"[–—-]", " ", luogo)
