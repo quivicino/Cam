@@ -30,6 +30,9 @@ for arg in sys.argv[1:]:
         with urllib.request.urlopen(req, timeout=30) as r:
             corpo = r.read()
             print(f"HTTP {r.status} · {r.headers.get('Content-Type')} · {len(corpo)} byte · finale {r.geturl()}")
+            extra = {k: v for k, v in r.headers.items() if k.lower() in ("access-control-allow-origin", "x-frame-options", "content-security-policy", "last-modified", "cache-control")}
+            if extra:
+                print("  intestazioni:", extra)
     except Exception as e:
         print("ERRORE:", e)
         continue
