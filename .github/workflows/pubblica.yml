@@ -1,0 +1,42 @@
+name: Pubblica sito e aggiorna telecamere
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # ogni 6 ore (ora UTC): l'elenco delle telecamere cambia di rado, le immagini sono sempre dal vivo
+    - cron: "17 */6 * * *"
+  workflow_dispatch:         # pulsante "Run workflow" per farlo partire a mano
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pubblica:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scarica l'elenco delle telecamere
+        timeout-minutes: 10
+        env:
+          SITO: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: python3 aggiorna_telecamere.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

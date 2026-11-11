@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Qui-Cam</title>
+  <meta name="description" content="Le webcam delle autostrade in tempo reale, lungo il tuo percorso">
+  <meta name="theme-color" content="#1b4f9c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand" aria-label="Qui-Cam">
+        <img class="logo" src="icon-192.png" alt="" width="50" height="50">
+        <span class="brand-name">Qui-Cam</span>
+      </div>
+      <form class="percorso" id="form-percorso" autocomplete="off">
+        <div class="campi">
+          <label class="campo">
+            <span class="campo-et">Da</span>
+            <input id="da" type="search" placeholder="La mia posizione" enterkeyhint="next" aria-label="Partenza">
+          </label>
+          <label class="campo">
+            <span class="campo-et">A</span>
+            <input id="a" type="search" placeholder="Dove vai?" enterkeyhint="go" aria-label="Arrivo">
+          </label>
+        </div>
+        <button class="inverti" id="btn-inverti" type="button" title="Inverti partenza e arrivo" aria-label="Inverti partenza e arrivo">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 4v15M4.5 7.5 8 4l3.5 3.5M16 20V5M12.5 16.5 16 20l3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="vai" id="btn-vai" type="submit">Vai</button>
+      </form>
+    </header>
+
+    <main class="corpo">
+      <div id="mappa" class="mappa" role="application" aria-label="Mappa delle telecamere"></div>
+
+      <div class="riepilogo" id="riepilogo" hidden>
+        <div class="riep-testo">
+          <b id="riep-titolo"></b>
+          <span id="riep-dettagli"></span>
+        </div>
+        <button class="riep-chiudi" id="btn-togli-percorso" type="button" aria-label="Togli il percorso">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="fab-col">
+        <button class="fab" id="btn-centra" type="button" title="Torna alla mia posizione" aria-label="Torna alla mia posizione">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button class="fab fab-nero" id="btn-elenco" type="button" title="Elenco delle telecamere" aria-label="Apri l'elenco delle telecamere" aria-controls="pannello" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="4.5" cy="6" r="1.6" fill="currentColor"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor"/><circle cx="4.5" cy="18" r="1.6" fill="currentColor"/></svg>
+          <span class="badge" id="badge-elenco" hidden></span>
+        </button>
+        <button class="fab" id="btn-aggiorna" type="button" title="Aggiorna le immagini" aria-label="Aggiorna le immagini">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="fab-azioni">
+        <button class="fab fab-blu" id="btn-prossima" type="button" title="Prossima telecamera" aria-label="Mostra la prossima telecamera">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><rect x="2.5" y="7" width="13" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 10.5 21 7.5v9l-5.5-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="12" r="2" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </main>
+
+    <section class="pannello" id="pannello" aria-label="Telecamere" hidden>
+      <header class="pannello-testa">
+        <h2>Qui-Cam</h2>
+        <a class="condividi" id="btn-condividi" href="https://wa.me/" target="_blank" rel="noopener" aria-label="Condividi l'app con un amico su WhatsApp">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.6 8.4c.2-.5.5-.5.8-.5h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.1-.2.3 0 .5.6 1 1.4 1.8 2.4 2.4.2.1.4.1.5 0l.6-.7c.2-.2.4-.2.6-.1l1.6.7c.3.1.4.3.4.5v.5c0 .3-.1.7-.6.9-.5.3-1.4.5-2.6.1a9 9 0 0 1-4.6-4.3c-.6-1.2-.4-2.2-.2-2.7Z" fill="currentColor"/></svg>
+          <span class="condividi-testo">Condividi</span>
+        </a>
+        <button class="btn-help" id="btn-guida" type="button" aria-label="Apri la guida all'app" aria-controls="guida" aria-expanded="false">HELP</button>
+        <button class="chiudi" id="btn-chiudi" type="button" aria-label="Chiudi l'elenco e torna alla mappa">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="pannello-corpo">
+        <div class="stato" id="stato" role="status" aria-live="polite">Carico l'elenco delle telecamere…</div>
+
+        <button class="btn-installa" id="btn-installa" type="button" hidden>
+          <img src="icon-192.png" alt="" width="36" height="36">
+          <span><b>Installa l'app</b><small>Metti l'icona di Qui-Cam sulla schermata Home</small></span>
+        </button>
+
+        <div class="sommario" id="sommario">
+          <div class="kpi kpi-osm"><b id="k-n">–</b><span id="k-n-et">telecamere<br>vicine</span></div>
+          <div class="kpi kpi-reale"><b id="k-km">–</b><span id="k-km-et">raggio<br>di ricerca</span></div>
+          <div class="kpi kpi-segn"><b id="k-tempo">–</b><span id="k-tempo-et">aggiornamento<br>immagini</span></div>
+        </div>
+
+        <button class="btn-strade" id="btn-strade" type="button">Strade con telecamere</button>
+
+        <a class="btn-navi" id="btn-navi" href="#" target="_blank" rel="noopener" hidden>Apri il percorso nel navigatore</a>
+
+        <label class="auto" for="auto-refresh">
+          <span>AGGIORNA IMMAGINI</span>
+          <span class="occhio" id="occhio" hidden title="Schermo sempre acceso"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg></span>
+          <select id="auto-refresh">
+            <option value="0">0 · mai</option>
+            <option value="30">30 s</option>
+            <option value="60" selected>60 s</option>
+            <option value="120">120 s</option>
+          </select>
+        </label>
+
+        <label class="auto" for="raggio">
+          <span>SENZA PERCORSO</span>
+          <select id="raggio">
+            <option value="5000">entro 5 km</option>
+            <option value="10000">entro 10 km</option>
+            <option value="25000" selected>entro 25 km</option>
+            <option value="50000">entro 50 km</option>
+          </select>
+        </label>
+
+        <label class="auto" for="soglia">
+          <span>DISTANZA DAL PERCORSO</span>
+          <select id="soglia">
+            <option value="200">200 m</option>
+            <option value="400" selected>400 m</option>
+            <option value="1000">1 km</option>
+          </select>
+        </label>
+
+        <label class="auto" for="sfondo">
+          <span>MAPPA</span>
+          <select id="sfondo">
+            <option value="stradale" selected>Stradale</option>
+            <option value="grande">Stradale, nomi grandi</option>
+            <option value="satellite">Satellite</option>
+          </select>
+        </label>
+
+        <div class="filtri" role="group" aria-label="Gestori">
+          <button class="chip filtro" type="button" data-filtro="aspi" aria-pressed="true">Autostrade per l'Italia</button>
+          <button class="chip filtro" type="button" data-filtro="a22" aria-pressed="true">A22 Brennero</button>
+        </div>
+
+        <ol class="lista" id="lista"></ol>
+
+        <footer class="fonti">
+          Immagini e video in diretta: <a href="https://www.autostrade.it/it/webcam" target="_blank" rel="noopener">Autostrade per l'Italia</a>
+          e <a href="https://www.autobrennero.it/it/in-viaggio/webcam/" target="_blank" rel="noopener">Autostrada del Brennero</a>:
+          l'app le mostra direttamente dai loro siti, non le salva.
+          Mappa, ricerca indirizzi e percorsi: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> e chi contribuisce (licenza ODbL), calcolo con <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>.
+        </footer>
+        <p class="versione" id="elenco-versione"></p>
+      </div>
+    </section>
+
+    <section class="pannello guida" id="guida" aria-label="Guida all'app" hidden>
+      <header class="pannello-testa">
+        <h2>Guida</h2>
+        <button class="chiudi" id="btn-chiudi-guida" type="button" aria-label="Chiudi la guida e torna all'elenco">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="pannello-corpo guida-corpo">
+        <p class="g-intro"><b>Qui-Cam</b> ti mostra le webcam delle autostrade in tempo reale. Scrivi da dove parti e dove vai:
+          l'app calcola il percorso e ti fa vedere, in ordine, le telecamere che incontrerai lungo la strada.</p>
+        <p class="g-versione" id="guida-versione"></p>
+
+        <nav class="g-indice" aria-label="Argomenti">
+          <a href="#g-percorso">Il percorso</a><a href="#g-mappa">La mappa</a><a href="#g-pulsanti">Pulsanti</a>
+          <a href="#g-elenco">Elenco e impostazioni</a><a href="#g-strade">Le strade</a><a href="#g-fonti">Le immagini</a><a href="#g-consigli">Consigli</a>
+        </nav>
+
+        <section id="g-percorso">
+          <h3>Il percorso</h3>
+          <ul class="g-punti">
+            <li>In alto, in <b>Da</b> scrivi il punto di partenza. Se lo lasci vuoto parti dalla <b>tua posizione</b>.</li>
+            <li>In <b>A</b> scrivi dove vai (una città, un indirizzo, un casello) e tocca <b>Vai</b>.</li>
+            <li>La freccia doppia scambia partenza e arrivo, per vedere il viaggio di ritorno.</li>
+            <li>Sulla mappa compare la strada in blu con le telecamere numerate nell'ordine in cui le incontri.
+              Nel riquadro bianco leggi quanti chilometri, quanto tempo e quante telecamere.</li>
+            <li>La <b>X</b> nel riquadro toglie il percorso e torna alle telecamere intorno a te.</li>
+          </ul>
+        </section>
+
+        <section id="g-mappa">
+          <h3>I segnaposto sulla mappa</h3>
+          <ul class="g-lista">
+            <li><span class="g-segno"><span class="mk cam num">3</span></span><div><b>Quadrato blu con numero</b>: telecamera lungo il percorso, in ordine dalla partenza.</div></li>
+            <li><span class="g-segno"><span class="mk cam"></span></span><div><b>Quadrato blu</b>: telecamera vicina a te (senza percorso).</div></li>
+            <li><span class="g-segno"><span class="g-punto"></span></span><div><b>Puntino</b>: tutte le altre telecamere d'Italia. Tocca per vederle.</div></li>
+            <li><span class="g-segno"><span class="io"></span></span><div><b>Punto azzurro</b>: sei tu. Il <b>cono</b> mostra dove è rivolto il telefono.</div></li>
+          </ul>
+          <p>Tocca una telecamera per aprire il <b>riquadro</b> con l'immagine dal vivo. <b>Guarda il video</b> mostra l'ultima
+            ripresa di pochi secondi; <b>Portami qui</b> apre il navigatore.</p>
+        </section>
+
+        <section id="g-pulsanti">
+          <h3>I pulsanti</h3>
+          <ul class="g-lista">
+            <li><span class="g-segno"><span class="g-fab"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></span><div><b>Posizione</b>: riporta la mappa su di te.</div></li>
+            <li><span class="g-segno"><span class="g-fab nero"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="4.5" cy="6" r="1.6" fill="currentColor"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor"/><circle cx="4.5" cy="18" r="1.6" fill="currentColor"/></svg></span></span><div><b>Elenco</b>: tutte le telecamere con le immagini, una sotto l'altra, e le impostazioni.</div></li>
+            <li><span class="g-segno"><span class="g-fab"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><div><b>Aggiorna</b>: ricarica subito le immagini.</div></li>
+            <li><span class="g-segno"><span class="g-fab blu"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="2.5" y="7" width="13" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 10.5 21 7.5v9l-5.5-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="12" r="2" fill="currentColor"/></svg></span></span><div><b>Prossima telecamera</b>: con un percorso, la prima che hai davanti a te (o la prima del viaggio se non sei ancora partito); senza percorso, la più vicina. Toccalo di nuovo per passare alla successiva.</div></li>
+            <li><span class="g-segno"><span class="btn-help g-help">HELP</span></span><div><b>HELP</b> (in alto nella pagina Elenco): apre questa pagina.</div></li>
+          </ul>
+        </section>
+
+        <section id="g-elenco">
+          <h3>La pagina Elenco e le impostazioni</h3>
+          <p>Con un percorso trovi le telecamere nell'ordine del viaggio, con quanti chilometri mancano e fra quanto tempo, più o meno, ci passerai.
+            Senza percorso trovi quelle intorno a te, dalla più vicina. Tocca un'immagine per vederla sulla mappa.</p>
+          <dl class="g-def">
+            <dt>AGGIORNA IMMAGINI</dt>
+            <dd>Ogni 30, 60 o 120 secondi l'app ricarica le immagini che stai guardando. <b>0</b> lo spegne.
+              Finché è attivo lo schermo resta acceso (compare l'<b>occhio verde</b>).</dd>
+            <dt>SENZA PERCORSO</dt>
+            <dd>Quanto lontano cercare le telecamere intorno a te: 5, 10, 25 o 50 km.</dd>
+            <dt>DISTANZA DAL PERCORSO</dt>
+            <dd>Quanto può stare lontana dalla strada una telecamera per comparire nel percorso. Con 1 km compaiono anche quelle sulle strade accanto.</dd>
+            <dt>MAPPA</dt>
+            <dd><b>Stradale</b>, <b>Stradale, nomi grandi</b> o <b>Satellite</b>.</dd>
+          </dl>
+          <p>I pulsanti dei <b>gestori</b> nascondono o mostrano le telecamere di Autostrade per l'Italia e dell'A22 del Brennero.
+            Le scelte restano memorizzate sul telefono.</p>
+        </section>
+
+        <section id="g-strade">
+          <h3>Le strade con telecamere</h3>
+          <p>Ogni tratta con quante telecamere ha e da che chilometro a che chilometro. Tocca una riga per vederle sulla mappa.</p>
+          <div class="strade" id="strade-elenco"><p class="vuoto">L'elenco compare quando l'app ha scaricato le telecamere.</p></div>
+        </section>
+
+        <section id="g-fonti">
+          <h3>Da dove vengono le immagini</h3>
+          <ul class="g-punti">
+            <li>Sono le webcam pubbliche dei gestori: <b>Autostrade per l'Italia</b> (circa mille telecamere su quasi tutta la rete)
+              e <b>Autostrada del Brennero</b> (A22).</li>
+            <li>L'app le mostra direttamente dai loro siti: vedi sempre l'ultima immagine che hanno pubblicato.
+              Le telecamere di Autostrade per l'Italia registrano un breve video ogni pochi minuti.</li>
+            <li>L'elenco delle telecamere si aggiorna da solo più volte al giorno. Se una telecamera è spenta o in manutenzione
+              il riquadro lo dice.</li>
+            <li>Le tratte gestite da altre società (per esempio Tangenziali di Milano, A4 Brescia-Padova, Autostrade Venete) per ora non hanno telecamere nell'app.</li>
+          </ul>
+        </section>
+
+        <section id="g-consigli">
+          <h3>Consigli</h3>
+          <ul class="g-punti">
+            <li><b>Non usare il telefono mentre guidi.</b> Guarda le telecamere prima di partire o fai usare l'app a chi è con te.</li>
+            <li>Metti l'icona sulla schermata Home: nella pagina Elenco tocca <b>Installa l'app</b> (su iPhone: in Safari <b>Condividi → Aggiungi alla schermata Home</b>).</li>
+            <li>Al primo avvio consenti l'accesso alla <b>posizione</b>: serve per partire da dove sei e per la prossima telecamera.</li>
+            <li>Ti è utile? In alto nella pagina Elenco tocca il pulsante verde <b>Condividi</b>.</li>
+            <li>Il numero di <b>versione</b>, nell'ultima riga della pagina Elenco, ti dice se hai l'ultimo aggiornamento.</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <section class="installa" id="installa" role="dialog" aria-modal="false" aria-labelledby="installa-titolo" hidden>
+    <div class="installa-testa">
+      <img src="icon-192.png" alt="" width="52" height="52">
+      <div>
+        <h2 id="installa-titolo">Metti Qui-Cam sul telefono</h2>
+        <p>Con l'icona sulla schermata Home la apri con un tocco, come un'app, a tutto schermo.</p>
+      </div>
+    </div>
+    <div class="installa-corpo" id="installa-corpo"></div>
+    <div class="installa-azioni">
+      <button class="installa-dopo" id="installa-dopo" type="button">Più tardi</button>
+      <button class="installa-ok" id="installa-ok" type="button">Installa</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="config.js?v=1"></script>
+  <script src="core.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+  <script src="installa.js?v=1"></script>
+  <script src="bussola.js?v=1"></script>
+</body>
+</html>
