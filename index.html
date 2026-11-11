@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div class="app">
@@ -150,6 +150,7 @@
           <button class="chip filtro" type="button" data-filtro="abp" aria-pressed="true">A4 Brescia-Padova</button>
           <button class="chip filtro" type="button" data-filtro="astm" aria-pressed="true">Gruppo ASTM</button>
           <button class="chip filtro" type="button" data-filtro="msv" aria-pressed="true">Milano Serravalle</button>
+          <button class="chip filtro" type="button" data-filtro="anas" aria-pressed="true">ANAS</button>
         </div>
 
         <ol class="lista" id="lista"></ol>
@@ -169,7 +170,8 @@
           <a href="https://www.asticuneo.it/webcam/" target="_blank" rel="noopener">Asti-Cuneo</a>,
           <a href="https://www.sitaf.it/webcam-a32/" target="_blank" rel="noopener">SITAF</a>,
           <a href="https://www.tangenziale.esterna.it/webcam/" target="_blank" rel="noopener">TEEM</a>),
-          <a href="https://www.serravalle.it/index.php/map" target="_blank" rel="noopener">Milano Serravalle</a>.
+          <a href="https://www.serravalle.it/index.php/map" target="_blank" rel="noopener">Milano Serravalle</a>,
+          <a href="https://www.stradeanas.it/it/vai-traffico-in-tempo-reale" target="_blank" rel="noopener">ANAS</a>.
           Mappa, ricerca indirizzi e percorsi: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> e chi contribuisce (licenza ODbL), calcolo con <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>.
         </footer>
         <p class="versione" id="elenco-versione"></p>
@@ -263,7 +265,8 @@
             <li>Sono le webcam pubbliche dei gestori: <b>Autostrade per l'Italia</b> (circa mille telecamere su quasi tutta la rete),
               <b>Autostrada del Brennero</b> (A22), <b>Autostrade Alto Adriatico</b> e <b>CAV</b> (A4 Venezia-Trieste, A23, A28, A34, A57, Passante di Mestre),
               <b>A4 Brescia-Padova</b> e le società del gruppo <b>ASTM</b> (A4 Torino-Milano, A6, A10 Savona-Ventimiglia, A12 Sestri-Livorno, A15, A21, A5 Quincinetto-Aosta, A32 Torino-Bardonecchia, A33 Asti-Cuneo, A58 TEEM),
-              <b>Milano Serravalle</b> (A7 e Tangenziali di Milano A50, A51, A52).</li>
+              <b>Milano Serravalle</b> (A7 e Tangenziali di Milano A50, A51, A52) e <b>ANAS</b> (A2 Autostrada del Mediterraneo, GRA di Roma e alcune strade statali).</li>
+            <li>Le immagini ANAS le scarica direttamente il telefono dal sito di ANAS: se non compaiono, apri la mappa ANAS dal pulsante nel riquadro.</li>
             <li>Per le telecamere dell'A22 e del gruppo ASTM i gestori non danno le coordinate: l'app le mette sull'autostrada in base al chilometro o al nome del luogo, quindi la posizione sulla mappa è approssimata.</li>
             <li>L'app le mostra direttamente dai loro siti: vedi sempre l'ultima immagine che hanno pubblicato.
               Le telecamere di Autostrade per l'Italia registrano un breve video ogni pochi minuti;
@@ -306,10 +309,10 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="config.js?v=5"></script>
-  <script src="core.js?v=5"></script>
-  <script src="app.js?v=5"></script>
-  <script src="installa.js?v=5"></script>
-  <script src="bussola.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="core.js?v=6"></script>
+  <script src="app.js?v=6"></script>
+  <script src="installa.js?v=6"></script>
+  <script src="bussola.js?v=6"></script>
 </body>
 </html>

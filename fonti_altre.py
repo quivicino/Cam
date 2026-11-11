@@ -348,3 +348,76 @@ def leggi_serravalle():
     if not out:
         raise ValueError("nessuna telecamera")
     return out
+
+
+# ---------- ANAS (mappa VAI) ----------
+# Elenco: getevents?single_data=TELECAMERE (id, nome della strada, coordinate, km, sigla descrittiva).
+# Il sito di ANAS non risponde ai server di GitHub: se non arriva si usa la copia salvata in
+# strumenti/anas_telecamere.json (le posizioni delle telecamere cambiano di rado).
+ANAS_ELENCO = "https://www.stradeanas.it/it/anas_vai/getevents?par=y7FdbVMHG&single_data=TELECAMERE"
+ANAS_IMG = "https://www.stradeanas.it/it/anas_vai/getImageTelecamera?id="
+ANAS_COPIA = "strumenti/anas_telecamere.json"
+ANAS_DIR = {"N": "nord", "S": "sud", "SA": "Salerno", "RC": "Reggio Calabria", "VE": "Venezia", "FO": "Foggia",
+            "NORD": "nord", "SUD": "sud", "EST": "est", "OVEST": "ovest"}
+
+
+def anas_sigla(sigla):
+    """'A2_KM_182_544_GALL_CILLARESE_TLC_01_DIR_N' → (182.544, 'Galleria Cillarese', 'nord')"""
+    s = sigla or ""
+    m = re.search(r"(?i)(?:KM_|^[A-Z0-9]+_)(\d{1,3})_(\d{3})", s)
+    km = int(m.group(1)) + int(m.group(2)) / 1000 if m else None
+    resto = s[m.end():] if m else ""
+    d = re.search(r"(?i)_DIR_([A-Z]+)", resto) or re.search(r"(?i)_(N|S|SA|RC)(?:_\d+)?$", resto)
+    direzione = ANAS_DIR.get(d.group(1).upper(), "") if d else ""
+    if d:
+        resto = resto[:d.start()]
+    parole = [p for p in resto.strip("_").split("_")
+              if p and not re.fullmatch(r"(?i)TLC|CAM|TRAFO|\d+|P\d+|[A-Z]{1,2}\d+", p)]
+    luogo = " ".join(parole).replace("GALL ", "Galleria ").replace("Gall ", "Galleria ")
+    luogo = re.sub(r"\b(Sx|Dx|Tvcc)\b", lambda m: m.group(1).upper(), luogo.title()).replace("Galleria C ", "Galleria C. ")
+    return km, pulisci(luogo), direzione
+
+
+def anas_strada(codice, nome):
+    c = (codice or "").strip()
+    if c.startswith("A2compl"):
+        return "A2", "A2 COMPLANARE"
+    m = re.match(r"(?i)^(SS|RA|A)(\d+)(.*)$", c)
+    if m:
+        c = m.group(1).upper() + m.group(2) + m.group(3).lower()
+    return c, pulisci(nome).upper()
+
+
+def leggi_anas():
+    try:
+        lista = json.loads(scarica(ANAS_ELENCO, referer="https://www.stradeanas.it/it/vai-traffico-in-tempo-reale",
+                                   tentativi=1, timeout=20))["telecamere"]
+        origine = "sito ANAS"
+    except Exception as e:
+        print(f"  ANAS: elenco dal sito non disponibile ({e}), uso la copia salvata")
+        with open(ANAS_COPIA, encoding="utf-8") as f:
+            lista = json.load(f)["telecamere"]
+        origine = "copia salvata"
+    out = []
+    for c in lista:
+        la, lo = numero(c.get("latitudine")), numero(c.get("longitudine"))
+        if la is None or lo is None or not (35.4 < la < 47.2 and 6.5 < lo < 18.6) or not c.get("id"):
+            continue
+        km, luogo, direzione = anas_sigla(c.get("descrizione"))
+        if km is None:
+            km = numero(c.get("km"))
+        s, sn = anas_strada(c.get("codice_strada"), c.get("nome"))
+        d = pulisci(c.get("direzione"))
+        out.append({
+            "id": "anas-" + str(c["id"]),
+            "la": round(la, 5), "lo": round(lo, 5),
+            "s": s, "sn": sn,
+            "n": luogo or (f"km {km:g}" if km is not None else sn),
+            "km": round(km, 1) if km is not None else None,
+            "dir": direzione or (d.lower() if d and d != "-" else ""),
+            "img": ANAS_IMG + str(c["id"]), "ij": 1, "vid": None, "f": "anas"
+        })
+    print(f"ANAS: {len(out)} telecamere ({origine})")
+    if not out:
+        raise ValueError("nessuna telecamera")
+    return out

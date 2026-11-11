@@ -28,9 +28,10 @@ FILE = os.path.join("dati", "mancanti.json")
 
 # link: indirizzi noti delle webcam (anche vecchi), sito: home page in cui cercare nuovi collegamenti
 GESTORI = [
-    {"strade": ["A2", "A19", "A29", "A90"], "nomi": "A2 Salerno-Reggio Calabria, A19 Palermo-Catania, A29 Palermo-Mazara, A90 GRA di Roma",
+    # A2 e GRA sono nell'app (elenco della mappa VAI); A19 e A29 in quell'elenco non compaiono
+    {"strade": ["A19", "A29"], "nomi": "A19 Palermo-Catania, A29 Palermo-Mazara del Vallo",
      "gestore": "ANAS",
-     "link": ["https://www.stradeanas.it/it/webcam", "https://www.stradeanas.it/it/le-strade/webcam"],
+     "link": ["https://www.stradeanas.it/it/anas_vai/getevents?par=y7FdbVMHG&single_data=TELECAMERE"],
      "sito": "https://www.stradeanas.it/"},
     {"strade": ["A24", "A25"], "nomi": "A24 Roma-L'Aquila-Teramo, A25 Torano-Pescara",
      "gestore": "ANAS (ex Strada dei Parchi)",

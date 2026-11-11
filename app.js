@@ -21,7 +21,7 @@
     aggiornato: null,
     percorso: null,       // { linea: [[lon,lat]…], metri, secondi, da, a, daNome, aNome }
     mostrate: [],         // telecamere vicine o lungo il percorso, in ordine
-    fonti: new Set(["aspi", "a22", "iv", "abp", "astm", "msv"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
+    fonti: new Set(["aspi", "a22", "iv", "abp", "astm", "msv", "anas"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
     seguiGps: true,
     indiceProssima: -1
   };
@@ -115,6 +115,8 @@
         : `<span class="scatto-diretta"><span>▶</span>Diretta video</span>`)
       : grande && t.vid
       ? `<video data-live="1" autoplay muted loop playsinline preload="auto" poster="${esc(conOra(t.img))}" src="${esc(conOra(t.vid))}"></video>`
+      : t.ij
+      ? `<img alt="Immagine della telecamera ${esc(t.n)}" data-json="1">`
       : `<img alt="Immagine della telecamera ${esc(t.n)}" ${grande ? "" : 'loading="lazy"'} src="${esc(conOra(t.img))}">`;
     const orario = t.emb && !t.img ? "" : `<span class="scatto-ora">${esc(ora())}</span>`;
     return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">${media}${orario}</div>`;
@@ -131,7 +133,22 @@
       img.dataset.collegata = "1";
       img.addEventListener("error", () => immagineRotta(img));
       img.addEventListener("load", () => img.closest(".scatto")?.classList.remove("rotto"));
+      if (img.dataset.json) caricaJson(img);
     });
+  }
+  // Alcuni gestori (ANAS) non danno un'immagine ma un JSON {"img": "<jpeg in base64>"}:
+  // lo scarica il telefono di chi usa l'app e lo mostra come immagine.
+  async function caricaJson(img) {
+    const box = img.closest(".scatto");
+    const t = box && perId.get(box.dataset.id);
+    if (!t) return;
+    try {
+      const d = await fetchJson(conOra(t.img), { cache: "no-store" }, 15000);
+      if (!d || !d.img) throw new Error("vuota");
+      img.src = "data:image/jpeg;base64," + d.img;
+    } catch (e) {
+      box.classList.add("rotto");
+    }
   }
   function immagineRotta(img) {
     const box = img.closest(".scatto");
@@ -163,7 +180,8 @@
         v.src = t.vid + "?t=" + Math.floor(giroImmagini / 1000) + "#t=0.5";
       } else if (!v) {
         const img = box.querySelector("img");
-        if (img) img.src = conOra(t.img);
+        if (img && img.dataset.json) caricaJson(img);
+        else if (img) img.src = conOra(t.img);
       }
       const o = box.querySelector(".scatto-ora");
       if (o) o.textContent = ora();
@@ -280,12 +298,13 @@
       <p class="pop-rotto">Questa telecamera adesso non manda immagini (spenta o in manutenzione).</p>
       <div class="pop-azioni">
         <a class="pop-vai" href="${linkNavigazione(t.la, t.lo)}" target="_blank" rel="noopener">Portami qui</a>
+        ${t.f === "anas" ? '<a class="pop-vai" href="https://www.stradeanas.it/it/vai-traffico-in-tempo-reale" target="_blank" rel="noopener">Mappa ANAS</a>' : ""}
       </div>
       <p class="fonte">${esc(nomeGestore(t))}</p>`;
     collegaScatti(div);
     return div;
   }
-  const GESTORI = { aspi: "Autostrade per l'Italia", a22: "Autostrada del Brennero", iv: "Infoviaggiando", abp: "A4 Brescia-Padova", astm: "Gruppo ASTM", msv: "Milano Serravalle" };
+  const GESTORI = { aspi: "Autostrade per l'Italia", a22: "Autostrada del Brennero", iv: "Infoviaggiando", abp: "A4 Brescia-Padova", astm: "Gruppo ASTM", msv: "Milano Serravalle", anas: "ANAS" };
   function nomeGestore(t) {
     if (t.f === "iv" && t.sn) return t.sn.replace(/^\S+\s*/, "") || GESTORI.iv;
     return t.g || GESTORI[t.f] || "";
