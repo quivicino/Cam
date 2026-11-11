@@ -37,6 +37,12 @@ for arg in sys.argv[1:]:
         print("ERRORE:", e)
         continue
     testo = corpo.decode("utf-8", "replace")
+    if cerca == "TESTO":   # testo visibile della pagina e sorgenti di immagini, iframe e video
+        t = re.sub(r"(?is)<(script|style|noscript|svg)\b.*?</\1>", " ", testo)
+        print("  sorgenti:", sorted(set(re.findall(r"(?i)<(?:img|iframe|video|source)[^>]+?(?:data-)?src=[\"']([^\"']+)", t)))[:60])
+        t = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t))
+        print("  testo:", t[:8000])
+        continue
     if cerca.startswith("TUTTI:"):
         for m in re.findall(cerca[6:], testo):
             print("  ·", m)
