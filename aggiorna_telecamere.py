@@ -297,8 +297,13 @@ def pubblicate():
 
 def main():
     os.makedirs(CARTELLA, exist_ok=True)
-    fonti = {"aspi": leggi_aspi, "a22": leggi_a22}
-    vecchie = None
+    import fonti_altre as altre
+    altre.scarica, altre.pulisci, altre.numero = scarica, pulisci, numero
+    vecchie = pubblicate()
+    # posizioni già calcolate (dal km o dal nome) nelle pubblicazioni precedenti
+    altre.POSIZIONI_NOTE = {t["id"]: (t["la"], t["lo"]) for t in vecchie if t.get("f") == "astm"}
+    fonti = {"aspi": leggi_aspi, "a22": leggi_a22, "iv": altre.leggi_infoviaggiando,
+             "abp": altre.leggi_abp, "astm": altre.leggi_astm}
     tutte, esito = [], {}
     for nome, leggi in fonti.items():
         try:
@@ -306,8 +311,6 @@ def main():
             esito[nome] = "nuove"
         except Exception as e:
             print(f"!! {nome}: {e}")
-            if vecchie is None:
-                vecchie = pubblicate()
             tenute = [t for t in vecchie if t.get("f") == nome]
             print(f"   tengo le {len(tenute)} telecamere già pubblicate")
             tutte += tenute

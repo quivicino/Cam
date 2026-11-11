@@ -21,7 +21,7 @@
     aggiornato: null,
     percorso: null,       // { linea: [[lon,lat]…], metri, secondi, da, a, daNome, aNome }
     mostrate: [],         // telecamere vicine o lungo il percorso, in ordine
-    fonti: new Set(["aspi", "a22"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
+    fonti: new Set(["aspi", "a22", "iv", "abp", "astm"].filter((f) => leggiPref("fonte-" + f, "1") !== "0")),
     seguiGps: true,
     indiceProssima: -1
   };
@@ -262,9 +262,14 @@
       <div class="pop-azioni">
         <a class="pop-vai" href="${linkNavigazione(t.la, t.lo)}" target="_blank" rel="noopener">Portami qui</a>
       </div>
-      <p class="fonte">${t.f === "a22" ? "Autostrada del Brennero" : "Autostrade per l'Italia"}</p>`;
+      <p class="fonte">${esc(nomeGestore(t))}</p>`;
     collegaScatti(div);
     return div;
+  }
+  const GESTORI = { aspi: "Autostrade per l'Italia", a22: "Autostrada del Brennero", iv: "Infoviaggiando", abp: "A4 Brescia-Padova", astm: "Gruppo ASTM" };
+  function nomeGestore(t) {
+    if (t.f === "iv" && t.sn) return t.sn.replace(/^\S+\s*/, "") || GESTORI.iv;
+    return t.g || GESTORI[t.f] || "";
   }
   // "km. 285 Arno a Firenze itinere nord" → "Arno a Firenze itinere nord"
   function titolo(t) {
