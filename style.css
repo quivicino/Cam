@@ -567,3 +567,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tab-strade tr[data-i] { cursor: pointer; }
 .tab-strade tr[data-i]:hover td { background: var(--bg); }
 @media (prefers-reduced-motion: reduce) { .vai.gira-testo { animation: none; } }
+.pop .pop-nota { font-size: 13px; margin: 0; }

@@ -108,11 +108,20 @@
 
   // Riquadro dell'immagine: <img> che, se il gestore non dà il fotogramma, passa al video
   function htmlScatto(t, grande) {
-    return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">
-      <img alt="Immagine della telecamera ${esc(t.n)}" ${grande ? "" : 'loading="lazy"'} src="${esc(conOra(t.img))}">
+    // Nel riquadro grande, se c'è, si mostra l'ultima ripresa video (la miniatura JPG di Autostrade è piccola)
+    const media = grande && t.vid
+      ? `<video data-live="1" autoplay muted loop playsinline preload="auto" poster="${esc(conOra(t.img))}" src="${esc(conOra(t.vid))}"></video>`
+      : `<img alt="Immagine della telecamera ${esc(t.n)}" ${grande ? "" : 'loading="lazy"'} src="${esc(conOra(t.img))}">`;
+    return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">${media}
       <span class="scatto-ora">${esc(ora())}</span></div>`;
   }
   function collegaScatti(radice) {
+    radice.querySelectorAll(".scatto video[data-live]").forEach((v) => {
+      if (v.dataset.collegata) return;
+      v.dataset.collegata = "1";
+      v.addEventListener("error", () => v.closest(".scatto")?.classList.add("rotto"));
+      v.play().catch(() => {});
+    });
     radice.querySelectorAll(".scatto img").forEach((img) => {
       if (img.dataset.collegata) return;
       img.dataset.collegata = "1";
@@ -142,7 +151,11 @@
       const t = perId.get(box.dataset.id);
       if (!t) return;
       const v = box.querySelector("video");
-      if (v && !v.controls) {   // anteprima video al posto della foto: si ricarica la nuova ripresa
+      if (v && v.dataset.live) {
+        v.poster = conOra(t.img);
+        v.src = conOra(t.vid);
+        v.play().catch(() => {});
+      } else if (v && !v.controls) {   // anteprima video al posto della foto: si ricarica la nuova ripresa
         v.src = t.vid + "?t=" + Math.floor(giroImmagini / 1000) + "#t=0.5";
       } else if (!v) {
         const img = box.querySelector("img");
@@ -244,26 +257,13 @@
       <p class="pop-meta">${descrizione(t)}</p>
       ${quando ? `<p class="pop-meta">${esc(quando)}</p>` : ""}
       ${htmlScatto(t, true)}
+      ${t.vid ? '<p class="pop-nota">Ultima ripresa, rifatta ogni pochi minuti</p>' : ""}
       <p class="pop-rotto">Questa telecamera adesso non manda immagini (spenta o in manutenzione).</p>
       <div class="pop-azioni">
-        ${t.vid ? '<button class="pop-video" type="button">Guarda il video</button>' : ""}
         <a class="pop-vai" href="${linkNavigazione(t.la, t.lo)}" target="_blank" rel="noopener">Portami qui</a>
       </div>
       <p class="fonte">${t.f === "a22" ? "Autostrada del Brennero" : "Autostrade per l'Italia"}</p>`;
     collegaScatti(div);
-    const bv = div.querySelector(".pop-video");
-    if (bv) bv.addEventListener("click", () => {
-      const box = div.querySelector(".scatto");
-      const v = document.createElement("video");
-      v.controls = true; v.autoplay = true; v.muted = true; v.playsInline = true; v.loop = true;
-      v.setAttribute("playsinline", "");
-      v.src = t.vid + "?t=" + Math.floor(Date.now() / 1000);
-      v.addEventListener("error", () => box.classList.add("rotto"));
-      box.querySelector("img, video")?.replaceWith(v);
-      box.classList.remove("rotto");
-      v.play().catch(() => {});
-      bv.hidden = true;
-    });
     return div;
   }
   // "km. 285 Arno a Firenze itinere nord" → "Arno a Firenze itinere nord"

@@ -40,8 +40,7 @@ ASPI_CLIP = re.compile(r"^[a-z0-9]{2,8}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 # Una telecamera che non rifà il video da più di questo tempo è spenta
 ASPI_ORE_MAX = 24
 
-A22_PAGINE = ["https://www.autobrennero.it/it/in-viaggio/webcam/", "https://www.autobrennero.it/it/",
-              "https://www.autobrennero.it/it/?mappa=traffico"]
+A22_PAGINE = ["https://www.autobrennero.it/it/", "https://www.autobrennero.it/it/in-viaggio/webcam/"]
 # l'elenco è una variabile JavaScript nella pagina: var puntiWebcam = {...};
 A22_VAR = re.compile(r"puntiWebcam\s*=\s*")
 
@@ -166,35 +165,95 @@ def json_da(html, inizio):
     return dati
 
 
+A22_SITO = "https://www.autobrennero.it"
+A22_KM_TOTALI = 314.0   # Brennero (km 0) → Modena, innesto A1 (km 314)
+# Brennero, confine di Stato → Campogalliano, innesto con l'A1
+A22_ESTREMI = ((11.5066, 47.0028), (10.8716, 44.6839))
+A22_SLIDE = re.compile(
+    r'class="webcam swiper-slide[^"]*"\s+data-km=["\']?(\d+(?:[.,]\d+)?)["\']?.*?<img\s+src=["\']?([^"\' >]+)'
+    r'.*?webcam-title[^>]*>([^<]*)<.*?webcam-place[^>]*>(.*?)</div>', re.S)
+
+
+def linea_a22():
+    """Tracciato dell'A22 da Brennero a Modena (OSRM su dati OpenStreetMap), con i metri progressivi."""
+    (lo1, la1), (lo2, la2) = A22_ESTREMI
+    url = (f"https://router.project-osrm.org/route/v1/driving/{lo1},{la1};{lo2},{la2}"
+           "?overview=full&geometries=geojson")
+    r = json.loads(scarica(url, tentativi=3))
+    pts = r["routes"][0]["geometry"]["coordinates"]
+    prog = [0.0]
+    for a, b in zip(pts, pts[1:]):
+        prog.append(prog[-1] + metri(a[1], a[0], b[1], b[0]))
+    return pts, prog
+
+
+def metri(la1, lo1, la2, lo2):
+    import math
+    r = math.pi / 180
+    a = math.sin((la2 - la1) * r / 2) ** 2 + math.cos(la1 * r) * math.cos(la2 * r) * math.sin((lo2 - lo1) * r / 2) ** 2
+    return 2 * 6371000 * math.asin(math.sqrt(a))
+
+
+def punto_al_km(pts, prog, km):
+    """Punto del tracciato al km indicato (in proporzione alla lunghezza del tracciato)."""
+    obiettivo = prog[-1] * min(max(km / A22_KM_TOTALI, 0), 1)
+    for i in range(1, len(prog)):
+        if prog[i] >= obiettivo:
+            f = (obiettivo - prog[i - 1]) / ((prog[i] - prog[i - 1]) or 1)
+            lo = pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0])
+            la = pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1])
+            return la, lo
+    return pts[-1][1], pts[-1][0]
+
+
 def leggi_a22():
-    dati = None
+    """Le webcam A22 sono nella pagina principale del sito (carosello "Avvisi e webcam"): km, nome, comune,
+    direzione e immagine, ma senza coordinate. La posizione si ricava dal km lungo il tracciato dell'A22."""
+    html = None
     for url in A22_PAGINE:
         try:
             html = scarica(url, tentativi=2).decode("utf-8", "replace")
+            if "WebCamImg" in html or A22_VAR.search(html):
+                break
         except Exception as e:
             print(f"  A22: {url} non risponde ({e})")
-            continue
-        m = A22_VAR.search(html)
-        if m:
-            dati = json_da(html, m.end())
-            print(f"  A22: elenco trovato in {url}")
-            break
-        # per capire dove è finito l'elenco se il sito cambia
-        jpg = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:-]*\.jpe?g", html, re.I)))[:5]
-        js = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:?=&-]*\.(?:json|js|ashx|aspx)[\w?=&]*", html, re.I)))[:8]
-        print(f"  A22: nessun elenco in {url} ({len(html)} caratteri); jpg: {jpg}; script/dati: {js}")
-        k = html.find("WebCamImg/")
-        if k >= 0 and os.environ.get("A22_DEBUG"):
-            print("  A22 contesto:", repr(html[max(0, k - 1500):k + 700]))
-            print("  A22 conteggio:", len(re.findall(r"WebCamImg/", html)))
-            print("  A22 script:", re.findall(r"<script[^>]*src=[\"']?([^\"' >]+)", html))
-            for mm in list(re.finditer(r"(?i)webcam", html))[:400]:
-                pezzo = html[mm.start() - 80:mm.start() + 160]
-                if re.search(r"(?i)lat|lng|lon|coord|json|fetch|ajax|api", pezzo):
-                    print("  A22 indizio:", repr(pezzo))
-            break
-    if dati is None:
-        raise ValueError("elenco webcam non trovato nelle pagine")
+    if not html:
+        raise ValueError("sito non raggiungibile")
+    m = A22_VAR.search(html)
+    if m:   # vecchia versione del sito, con le coordinate
+        return a22_da_variabile(json_da(html, m.end()))
+
+    trovate = {}
+    for km, img, nome, luogo in A22_SLIDE.findall(html):
+        km = float(km.replace(",", "."))
+        luogo = pulisci(re.sub(r"<[^>]+>", " | ", luogo))
+        if km not in trovate:
+            trovate[km] = (img, pulisci(nome), luogo)
+    if not trovate:
+        raise ValueError("webcam non trovate nella pagina")
+    pts, prog = linea_a22()
+    print(f"  A22: {len(trovate)} webcam, tracciato di {prog[-1] / 1000:.0f} km")
+    out = []
+    for km, (img, nome, luogo) in sorted(trovate.items()):
+        la, lo = punto_al_km(pts, prog, km)
+        if not img.startswith("http"):
+            img = A22_SITO + "/" + img.lstrip("/")
+        comune = luogo.split("|")[0].strip()
+        testo = luogo.lower()
+        out.append({
+            "id": f"a22-km{km:g}",
+            "la": round(la, 5), "lo": round(lo, 5),
+            "s": "A22", "sn": "A22 Brennero-Modena",
+            "n": f"{nome} ({comune})" if comune and comune.lower() not in nome.lower() else nome,
+            "km": km,
+            "dir": "Modena" if "modena" in testo else "Brennero" if "brennero" in testo else "",
+            "img": img, "vid": None, "f": "a22"
+        })
+    print(f"A22 Brennero: {len(out)} telecamere")
+    return out
+
+
+def a22_da_variabile(dati):
     gruppi = dati.values() if isinstance(dati, dict) else [dati]
     out = []
     for gruppo in gruppi:
@@ -206,17 +265,17 @@ def leggi_a22():
             if img.startswith("//"):
                 img = "https:" + img
             elif img.startswith("/"):
-                img = "https://www.autobrennero.it" + img
+                img = A22_SITO + img
             des = pulisci(c.get("Descrizione"))
             km = numero(c.get("Distanza"))
             d = des.lower()
             out.append({
                 "id": "a22-" + str(c.get("ID")),
                 "la": round(lat, 5), "lo": round(lon, 5),
-                "s": "A22", "sn": "A22 Autostrada del Brennero",
+                "s": "A22", "sn": "A22 Brennero-Modena",
                 "n": des or "A22",
                 "km": round(km, 1) if km is not None else None,
-                "dir": "modena" if "modena" in d else "brennero" if "brennero" in d else "",
+                "dir": "Modena" if "modena" in d else "Brennero" if "brennero" in d else "",
                 "img": img, "vid": None, "f": "a22"
             })
     print(f"A22 Brennero: {len(out)} telecamere")
