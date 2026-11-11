@@ -16,6 +16,7 @@ import os
 import re
 import socket
 import urllib.error
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -33,7 +34,7 @@ GESTORI = [
      "sito": "https://www.stradeanas.it/"},
     {"strade": ["A24", "A25"], "nomi": "A24 Roma-L'Aquila-Teramo, A25 Torano-Pescara",
      "gestore": "ANAS (ex Strada dei Parchi)",
-     "link": ["https://www.stradadeiparchi.it/webcam/", "https://www.stradeanas.it/it/webcam"],
+     "link": ["https://www.stradadeiparchi.it/traffico/webcam/", "https://www.stradeanas.it/it/webcam"],
      "sito": "https://www.stradadeiparchi.it/"},
     {"strade": ["A18", "A20"], "nomi": "A18 Messina-Catania e Siracusa-Gela, A20 Messina-Palermo",
      "gestore": "Consorzio Autostrade Siciliane",
@@ -50,25 +51,30 @@ WEBCAM_LINK = re.compile(r"""href=["']([^"'#]*(?:webcam|telecamer)[^"']*)["']"""
 
 
 def prova(url):
-    """→ (ok, testo, motivo)"""
+    """→ (ok, testo, motivo, indirizzo finale)"""
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*", "Accept-Language": "it-IT,it;q=0.9"})
     try:
         with urllib.request.urlopen(req, timeout=25) as r:
-            return True, r.read(3_000_000).decode("utf-8", "replace"), f"HTTP {r.status}"
+            return True, r.read(3_000_000).decode("utf-8", "replace"), f"HTTP {r.status}", r.geturl()
     except urllib.error.HTTPError as e:
         motivi = {403: "accesso negato (403)", 404: "pagina non trovata (404)", 503: "servizio non disponibile (503)"}
-        return False, "", motivi.get(e.code, f"errore HTTP {e.code}")
+        return False, "", motivi.get(e.code, f"errore HTTP {e.code}"), url
     except (socket.timeout, TimeoutError):
-        return False, "", "tempo scaduto, il sito non risponde"
+        return False, "", "tempo scaduto, il sito non risponde", url
     except urllib.error.URLError as e:
         r = str(e.reason)
         if "timed out" in r:
-            return False, "", "tempo scaduto, il sito non risponde"
+            return False, "", "tempo scaduto, il sito non risponde", url
         if "Name or service" in r or "resolution" in r:
-            return False, "", "indirizzo inesistente"
-        return False, "", "connessione non riuscita"
+            return False, "", "indirizzo inesistente", url
+        return False, "", "connessione non riuscita", url
     except Exception as e:
-        return False, "", f"errore: {type(e).__name__}"
+        return False, "", f"errore: {type(e).__name__}", url
+
+
+def percorso(u):
+    """'https://www.sito.it/traffico/webcam/' e '/traffico/webcam' → 'traffico/webcam'"""
+    return urllib.parse.urlsplit(u).path.strip("/").lower()
 
 
 def conta_webcam(testo):
@@ -78,13 +84,17 @@ def conta_webcam(testo):
             return len(d)
     except ValueError:
         pass
-    return len(set(re.findall(r"[\w/.:%-]+\.(?:jpe?g|mp4|m3u8)", testo, re.I)))
+    # immagini e video, esclusi quelli del tema del sito (logo, intestazione, sfondi, icone)
+    trovati = set(re.findall(r"[\w/.:%-]+\.(?:jpe?g|mp4|m3u8)", testo, re.I))
+    return len([u for u in trovati if not re.search(r"(?i)/themes/|logo|header|sfondo|background|icon|banner", u)])
 
 
 def controlla(g):
     esito = {"strade": g["strade"], "nomi": g["nomi"], "gestore": g["gestore"], "prove": []}
+    noti = {percorso(u) for u in g["link"]}
     for url in g["link"]:
-        ok, testo, motivo = prova(url)
+        ok, testo, motivo, finale = prova(url)
+        noti.add(percorso(finale))
         n = conta_webcam(testo) if ok else 0
         esito["prove"].append({"url": url, "ok": ok, "motivo": motivo, "n": n})
         if ok and n:
@@ -92,17 +102,17 @@ def controlla(g):
                          dettaglio=f"il link risponde ({n} immagini o video): si può aggiungere all'app")
             return esito
     # nessun link funzionante: si guarda il sito
-    ok, testo, motivo = prova(g["sito"])
+    ok, testo, motivo, _ = prova(g["sito"])
     trovati = sorted({u for u in WEBCAM_LINK.findall(testo)})[:5] if ok else []
     esito["sito"] = {"url": g["sito"], "ok": ok, "motivo": motivo, "link_webcam": trovati}
-    nuovi = [u for u in trovati if not any(u.rstrip("/").endswith(k.rstrip("/").split("://")[-1]) for k in g["link"])]
+    nuovi = [u for u in trovati if percorso(u) not in noti]
     if nuovi:
         esito.update(stato="link trovato", link=nuovi[0],
                      dettaglio="sul sito compare un collegamento a webcam da esaminare")
     elif g["link"]:
-        ultimo = esito["prove"][-1]
-        esito.update(stato="non risponde", link=g["link"][0],
-                     dettaglio="abbiamo il link ma " + (ultimo["motivo"] if not ultimo["ok"] else "non contiene webcam"))
+        parti = [f"{urllib.parse.urlsplit(p['url']).hostname.removeprefix('www.')}: "
+                 + (p["motivo"] if not p["ok"] else "la pagina delle webcam è vuota") for p in esito["prove"]]
+        esito.update(stato="non risponde", link=g["link"][0], dettaglio="abbiamo il link ma " + "; ".join(dict.fromkeys(parti)))
     else:
         esito.update(stato="nessun link", link=None,
                      dettaglio="nessuna webcam pubblicata sul sito" if ok else f"nessun link e il sito non risponde ({motivo})")
