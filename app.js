@@ -116,9 +116,11 @@
       : grande && t.vid
       ? `<video data-live="1" autoplay muted loop playsinline preload="auto" poster="${esc(conOra(t.img))}" src="${esc(conOra(t.vid))}"></video>`
       : t.ij
-      ? `<img alt="Immagine della telecamera ${esc(t.n)}" data-json="1">`
+      ? (grande
+        ? `<a class="scatto-diretta scatto-esterna" href="https://www.stradeanas.it/it/vai-traffico-in-tempo-reale" target="_blank" rel="noopener"><span>↗</span>Immagine visibile solo sulla mappa ANAS</a>`
+        : `<span class="scatto-diretta"><span>↗</span>Mappa ANAS</span>`)
       : `<img alt="Immagine della telecamera ${esc(t.n)}" ${grande ? "" : 'loading="lazy"'} src="${esc(conOra(t.img))}">`;
-    const orario = t.emb && !t.img ? "" : `<span class="scatto-ora">${esc(ora())}</span>`;
+    const orario = (t.emb && !t.img) || t.ij ? "" : `<span class="scatto-ora">${esc(ora())}</span>`;
     return `<div class="scatto${grande ? " grande" : ""}" data-id="${esc(t.id)}">${media}${orario}</div>`;
   }
   function collegaScatti(radice) {
@@ -170,7 +172,7 @@
     giroImmagini = Date.now();
     document.querySelectorAll(".scatto").forEach((box) => {
       const t = perId.get(box.dataset.id);
-      if (!t || box.querySelector("iframe, .scatto-diretta")) return;   // le dirette non si ricaricano
+      if (!t || box.querySelector("iframe, .scatto-diretta")) return;   // dirette e telecamere senza immagine qui   // le dirette non si ricaricano
       const v = box.querySelector("video");
       if (v && v.dataset.live) {
         v.poster = conOra(t.img);
@@ -294,7 +296,7 @@
       <p class="pop-meta">${descrizione(t)}</p>
       ${quando ? `<p class="pop-meta">${esc(quando)}</p>` : ""}
       ${htmlScatto(t, true)}
-      ${t.emb && !t.img ? '<p class="pop-nota">Diretta video dal sito del gestore</p>' : t.vid ? '<p class="pop-nota">Ultima ripresa, rifatta ogni pochi minuti</p>' : ""}
+      ${t.ij ? '<p class="pop-nota">ANAS non permette di mostrare le sue immagini in altre app: tocca il riquadro o «Mappa ANAS» e cerca la telecamera vicino a questo punto.</p>' : t.emb && !t.img ? '<p class="pop-nota">Diretta video dal sito del gestore</p>' : t.vid ? '<p class="pop-nota">Ultima ripresa, rifatta ogni pochi minuti</p>' : ""}
       <p class="pop-rotto">Questa telecamera adesso non manda immagini (spenta o in manutenzione).</p>
       <div class="pop-azioni">
         <a class="pop-vai" href="${linkNavigazione(t.la, t.lo)}" target="_blank" rel="noopener">Portami qui</a>

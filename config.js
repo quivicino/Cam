@@ -4,7 +4,7 @@
 window.CAM_CONFIG = {
   // Versione dell'app, mostrata in fondo alla pagina Elenco. Aumentala a ogni aggiornamento
   // (insieme al nome della cache in sw.js e ai ?v= in index.html).
-  versione: "6",
+  versione: "7",
 
   // Senza percorso: telecamere entro questo raggio (metri) dalla tua posizione
   raggioMetri: 25000,
