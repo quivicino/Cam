@@ -1,0 +1,19 @@
+name: Sonda nuove fonti
+
+on:
+  workflow_dispatch:
+    inputs:
+      indirizzi:
+        description: "Indirizzi da esaminare, separati da spazi"
+        required: true
+
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Esamina
+        timeout-minutes: 10
+        env:
+          INDIRIZZI: ${{ github.event.inputs.indirizzi }}
+        run: python3 strumenti/sonda.py $INDIRIZZI
