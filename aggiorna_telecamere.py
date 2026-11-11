@@ -40,8 +40,10 @@ ASPI_CLIP = re.compile(r"^[a-z0-9]{2,8}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 # Una telecamera che non rifà il video da più di questo tempo è spenta
 ASPI_ORE_MAX = 24
 
-A22_PAGINA = "https://www.autobrennero.it/it/"
-A22_INIZIO, A22_FINE = "var puntiWebcam=", ";var puntiBarriere"
+A22_PAGINE = ["https://www.autobrennero.it/it/in-viaggio/webcam/", "https://www.autobrennero.it/it/",
+              "https://www.autobrennero.it/it/?mappa=traffico"]
+# l'elenco è una variabile JavaScript nella pagina: var puntiWebcam = {...};
+A22_VAR = re.compile(r"puntiWebcam\s*=\s*")
 
 
 def scarica(url, referer=None, tentativi=3, timeout=40):
@@ -99,13 +101,16 @@ def eta_clip(giorno, ora):
 
 def foto_aspi(cam, clip):
     """Indirizzo del fotogramma JPG: se l'elenco lo dà si usa quello, altrimenti si ricava dal video."""
+    foto = []
     for k, v in (cam.get("frames") or {}).items():
         if k == "V" or not isinstance(v, dict):
             continue
         u = v.get("t_url")
         if isinstance(u, str) and re.search(r"\.(jpe?g|png)$", u, re.I):
-            return u if u.startswith("http") else ASPI_FOTO + u.lstrip("/")
-    return ASPI_FOTO + clip[:-4] + "-3.jpg"
+            foto.append(u if u.startswith("http") else ASPI_FOTO + u.lstrip("/"))
+    # meglio il fotogramma grande della miniatura ("-thumb.jpg")
+    foto.sort(key=lambda u: "thumb" in u)
+    return foto[0] if foto else ASPI_FOTO + clip[:-4] + "-3.jpg"
 
 
 def leggi_aspi():
@@ -114,6 +119,11 @@ def leggi_aspi():
     if not isinstance(lista, list):
         raise ValueError("risposta senza 'webcams'")
     out, scartate = [], {"senza video": 0, "fuori posto": 0, "spente": 0}
+    if lista:
+        esempio = {k: v for k, v in lista[0].items() if k in ("c_tel", "c_str", "t_des", "t_des_str", "n_prg_km", "frames",
+                                                               "n_prg_km_ini", "n_prg_km_fin", "t_dir", "c_dir")}
+        print("  campi:", sorted(lista[0].keys()))
+        print("  esempio:", json.dumps(esempio, ensure_ascii=False)[:600])
     for c in lista:
         clip = ((c.get("frames") or {}).get("V") or {}).get("t_url")
         if not isinstance(clip, str) or not ASPI_CLIP.match(clip):
@@ -128,6 +138,7 @@ def leggi_aspi():
             scartate["spente"] += 1
             continue
         strada = pulisci(c.get("c_str")) or pulisci(c.get("t_des_str")).split(" ")[0]
+        strada = re.sub(r"^([A-Za-z]+)0+(\d)", r"\1\2", strada)   # "A01" → "A1"
         nome_strada = pulisci(c.get("t_des_str"))
         des = pulisci(c.get("t_des"))
         km = numero(c.get("n_prg_km"))
@@ -149,12 +160,31 @@ def leggi_aspi():
 
 
 # ---------- A22 Autostrada del Brennero ----------
+def json_da(html, inizio):
+    """Legge l'oggetto JSON che comincia in html[inizio] ({ o [) fino alla parentesi che lo chiude."""
+    dati, _ = json.JSONDecoder().raw_decode(html[inizio:])
+    return dati
+
+
 def leggi_a22():
-    html = scarica(A22_PAGINA).decode("utf-8", "replace")
-    i, j = html.find(A22_INIZIO), html.find(A22_FINE)
-    if i < 0 or j < 0:
-        raise ValueError("elenco webcam non trovato nella pagina")
-    dati = json.loads(html[i + len(A22_INIZIO):j].strip())
+    dati = None
+    for url in A22_PAGINE:
+        try:
+            html = scarica(url, tentativi=2).decode("utf-8", "replace")
+        except Exception as e:
+            print(f"  A22: {url} non risponde ({e})")
+            continue
+        m = A22_VAR.search(html)
+        if m:
+            dati = json_da(html, m.end())
+            print(f"  A22: elenco trovato in {url}")
+            break
+        # per capire dove è finito l'elenco se il sito cambia
+        jpg = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:-]*\.jpe?g", html, re.I)))[:5]
+        js = sorted(set(re.findall(r"[\w/.:-]*webcam[\w/.:?=&-]*\.(?:json|js|ashx|aspx)[\w?=&]*", html, re.I)))[:8]
+        print(f"  A22: nessun elenco in {url} ({len(html)} caratteri); jpg: {jpg}; script/dati: {js}")
+    if dati is None:
+        raise ValueError("elenco webcam non trovato nelle pagine")
     gruppi = dati.values() if isinstance(dati, dict) else [dati]
     out = []
     for gruppo in gruppi:
