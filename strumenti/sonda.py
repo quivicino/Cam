@@ -20,7 +20,9 @@ def descrivi_json(d, prof=0, chiave="radice"):
             print(f"{pre}  primo: {json.dumps(d[0], ensure_ascii=False)[:700]}")
 
 
-for url in sys.argv[1:]:
+for arg in sys.argv[1:]:
+    # "URL||espressione": mostra anche il testo intorno alle prime corrispondenze dell'espressione
+    url, _, cerca = arg.partition("||")
     print("=" * 100)
     print(url)
     try:
@@ -32,6 +34,11 @@ for url in sys.argv[1:]:
         print("ERRORE:", e)
         continue
     testo = corpo.decode("utf-8", "replace")
+    if cerca:
+        for m in list(re.finditer(cerca, testo))[:4]:
+            print("  >>>", repr(testo[max(0, m.start() - 1200):m.start() + 1200]))
+        print("  >>> corrispondenze:", len(re.findall(cerca, testo)))
+        continue
     try:
         descrivi_json(json.loads(testo))
         continue
