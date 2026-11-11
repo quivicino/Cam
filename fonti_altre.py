@@ -203,6 +203,13 @@ ASTM = [
     {"url": "https://www.asticuneo.it/webcam/", "gestore": "Asti-Cuneo", "tratte": [
         {"s": "A33", "sn": "A33 ASTI-CUNEO", "punti": [(8.2560, 44.8960), (7.5480, 44.4080)], "da": 0, "a": 90,
          "zona": "Piemonte"}]},
+    {"url": "https://www.sitaf.it/webcam-a32/", "gestore": "SITAF", "tratte": [
+        {"s": "A32", "sn": "A32 TORINO-BARDONECCHIA", "punti": [(7.5660, 45.0740), (6.7040, 45.0820)], "da": None, "a": None,
+         "zona": "Torino", "alias": {"Galleria La Perosa": "Rosta", "Galleria Prapontin": "Mattie",
+                                     "Ingresso Circ": "Oulx", "Ingresso piazzale Frejus": "Bardonecchia"}}]},
+    {"url": "https://www.tangenziale.esterna.it/webcam/", "gestore": "Tangenziale Esterna", "tratte": [
+        {"s": "A58", "sn": "A58 TANGENZIALE EST ESTERNA DI MILANO", "punti": [(9.3520, 45.5830), (9.3300, 45.3520)],
+         "da": None, "a": None, "zona": "Lombardia"}]},
 ]
 ASTM_BLOCCO = re.compile(r"<!-- WEBCAM -->(.*?)<!-- /WEBCAM -->", re.S)
 
@@ -281,7 +288,7 @@ def posiziona(tratta, km, nome):
             if p:
                 return aggancia(pts, p[0], p[1])[0]
     luogo = re.sub(r"(?i)\b(km\.?\s*[\d+ ,.]*|svincolo|uscita|bivio( per)?|interc\.?|ads|area di (servizio|sosta)|"
-                   r"raccordo|galleria|barriera|ponte sul fiume|nord|sud|est|ovest|cn|at)\b", " ", nome)
+                   r"raccordo|galleria|barriera|ponte sul fiume|nord|sud|est|ovest|cn|at|centro|lato\s+\S+)\b", " ", nome)
     luogo = re.sub(r"[–—-]", " ", luogo)
     luogo = pulisci(re.sub(r"\s+", " ", luogo))
     if not luogo:
