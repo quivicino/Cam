@@ -34,6 +34,10 @@ for arg in sys.argv[1:]:
         print("ERRORE:", e)
         continue
     testo = corpo.decode("utf-8", "replace")
+    if cerca.startswith("TUTTI:"):
+        for m in re.findall(cerca[6:], testo):
+            print("  ·", m)
+        continue
     if cerca:
         for m in list(re.finditer(cerca, testo))[:4]:
             print("  >>>", repr(testo[max(0, m.start() - 1200):m.start() + 1200]))
